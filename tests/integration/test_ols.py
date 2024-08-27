@@ -183,6 +183,10 @@ def test_post_question_with_model_but_not_provider(_setup):
     )
 
 
+@patch(
+    "ols.app.endpoints.ols.config.ols_config.query_validation_method",
+    constants.QueryValidationMethod.DISABLED,
+)
 def test_unknown_provider_in_post(_setup):
     """Check the REST API /v1/query with POST method when unknown provider is requested."""
     # empty config - no providers

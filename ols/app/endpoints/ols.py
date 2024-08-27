@@ -27,7 +27,7 @@ from ols.app.models.models import (
     SummarizerResponse,
     UnauthorizedResponse,
 )
-from ols.src.llms.llm_loader import LLMConfigurationError
+from ols.src.llms.llm_loader import LLMConfigurationError, resolve_provider_config
 from ols.src.query_helpers.attachment_appender import append_attachments_to_query
 from ols.src.query_helpers.docs_summarizer import DocsSummarizer
 from ols.src.query_helpers.question_validator import QuestionValidator
@@ -116,6 +116,8 @@ def conversation_request(
     query_without_attachments = llm_request.query
     llm_request.query = append_attachments_to_query(llm_request.query, attachments)
     timestamps["append attachments"] = time.time()
+
+    validate_requested_provider_model(llm_request)
 
     # Validate the query
     if not previous_input:
@@ -320,6 +322,25 @@ def generate_response(
                 "response": response,
                 "cause": cause,
             },
+        )
+
+
+def validate_requested_provider_model(llm_request: LLMRequest) -> None:
+    """Validate provider/model; if provided in request payload."""
+    provider = llm_request.provider
+    model = llm_request.model
+    if provider is None and model is None:
+        # When provider & model are not sent with request, then no validation
+        return
+
+    try:
+        resolve_provider_config(provider, model, config.config.llm_providers)
+    except LLMConfigurationError as e:
+        metrics.llm_calls_validation_errors_total.inc()
+        logger.error(e)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"response": "Unable to process this request", "cause": str(e)},
         )
 
 
