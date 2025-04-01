@@ -413,7 +413,7 @@ def retrieve_previous_input(
             )
         return previous_input
     except Exception as e:
-        logger.error("Error retrieving previous user input for user %s", user_id)
+        logger.exception("Error retrieving previous user input for user %s", user_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
